@@ -45,6 +45,8 @@ int main(int argc, char* argv[])
       c.write(msg);
     }*/
 
+    while(1){}
+
     c.close();
     t.join();
   }

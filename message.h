@@ -186,7 +186,7 @@ public:
 
   bool decode_header()
   {
-    return false;
+    return true;
   }
 
   MessageType messageType() const
