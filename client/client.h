@@ -27,7 +27,9 @@ private:
   void do_read_header();
 
   void do_read_body();
-  void do_write();
+
+  void do_writeHeader();
+  void do_writePayload();
 
   void startPeriodicTimer();
   void prepareVector();

@@ -24,7 +24,7 @@ void session::deliver(const serverMessage &msg)
     _write_msgs.push_back(msg);
     if (!write_in_progress)
     {
-        do_write();
+        do_writeHeader();
     }
 }
 
@@ -33,7 +33,7 @@ void session::do_read_header()
 {
     auto self(shared_from_this());
     asio::async_read(socket_,
-                     asio::buffer(_read_msg.header(), sizeof(std::size_t)),
+                     asio::buffer(_read_msg.header(), _read_msg.headerSizeBytes()),
                      [this, self](std::error_code ec, std::size_t /*length*/)
     {
         if (!ec && _read_msg.validateHeader(_maxNumElements))
@@ -42,6 +42,7 @@ void session::do_read_header()
         }
         else
         {
+            std::cout << "Error validating header" << std::endl;
             room_.leave(shared_from_this());
         }
     });
@@ -56,11 +57,12 @@ void session::do_read_body()
 {
     auto self(shared_from_this());
     asio::async_read(socket_,
-                     asio::buffer(_read_msg.vector(), _read_msg.vectorSizeBytes()),
+                     asio::buffer(_read_msg.payload(), _read_msg.payloadSizeBytes()),
                      [this, self](std::error_code ec, std::size_t /*length*/)
     {
         if (!ec)
         {
+            _read_msg.applyToData();
             std::vector<double> elements = _read_msg.elements();
             double total = sum(elements);
             double avg = total / elements.size();
@@ -77,12 +79,31 @@ void session::do_read_body()
     });
 }
 
-void session::do_write()
+void session::do_writeHeader()
 {
     auto self(shared_from_this());
     asio::async_write(socket_,
-                      asio::buffer(_write_msgs.front().data(),
-                                   _write_msgs.front().length()),
+                      asio::buffer(_write_msgs.front().header(),
+                                   _write_msgs.front().headerSizeBytes()),
+                      [this, self](std::error_code ec, std::size_t /*length*/)
+    {
+        if (!ec)
+        {
+            do_writePayload();
+        }
+        else
+        {
+            room_.leave(shared_from_this());
+        }
+    });
+}
+
+void session::do_writePayload()
+{
+    auto self(shared_from_this());
+    asio::async_write(socket_,
+                      asio::buffer(_write_msgs.front().payload(),
+                                   _write_msgs.front().payloadSizeBytes()),
                       [this, self](std::error_code ec, std::size_t /*length*/)
     {
         if (!ec)
@@ -90,7 +111,7 @@ void session::do_write()
             _write_msgs.pop_front();
             if (!_write_msgs.empty())
             {
-                do_write();
+                do_writeHeader();
             }
         }
         else

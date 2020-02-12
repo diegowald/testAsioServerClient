@@ -19,7 +19,7 @@ void client::write(const clientMessage& msg)
         _write_msgs.push_back(msg);
         if (!write_in_progress)
         {
-            do_write();
+            do_writeHeader();
         }
     });
 }
@@ -47,7 +47,7 @@ void client::do_read_header()
                      asio::buffer(_read_msg.header(), sizeof(int)),
                      [this](std::error_code ec, std::size_t /*length*/)
     {
-        if (!ec && _read_msg.decode_header() && _read_msg.messageType() != serverMessage::MessageType::UnknownMessage)
+        if (!ec && _read_msg.validateHeader() && _read_msg.messageType() != serverMessage::MessageType::UnknownMessage)
         {
             do_read_body();
         }
@@ -61,7 +61,7 @@ void client::do_read_header()
 void client::do_read_body()
 {
     asio::async_read(socket_,
-                     asio::buffer(_read_msg.body(), _read_msg.body_lengthBytes()),
+                     asio::buffer(_read_msg.payload(), _read_msg.payloadSizeBytes()),
                      [this](std::error_code ec, std::size_t /*length*/)
     {
         if (!ec)
@@ -79,6 +79,8 @@ void client::do_read_body()
             case serverMessage::MessageType::VectorAverage:
                 std::cout << "Vector Average: " << _read_msg.average() << std::endl;
                 break;
+            case serverMessage::MessageType::UnknownMessage:
+                std::cout << "Error";
             }
             do_read_header();
         }
@@ -89,11 +91,29 @@ void client::do_read_body()
     });
 }
 
-void client::do_write()
+void client::do_writeHeader()
 {
     asio::async_write(socket_,
-                      asio::buffer(_write_msgs.front().data(),
-                                   _write_msgs.front().dataLengthBytes()),
+                      asio::buffer(_write_msgs.front().header(),
+                                   _write_msgs.front().headerSizeBytes()),
+                      [this](std::error_code ec, std::size_t /*length*/)
+    {
+        if (!ec)
+        {
+            do_writePayload();
+        }
+        else
+        {
+            socket_.close();
+        }
+    });
+}
+
+void client::do_writePayload()
+{
+    asio::async_write(socket_,
+                      asio::buffer(_write_msgs.front().payload(),
+                                   _write_msgs.front().payloadSizeBytes()),
                       [this](std::error_code ec, std::size_t /*length*/)
     {
         if (!ec)
@@ -101,7 +121,7 @@ void client::do_write()
             _write_msgs.pop_front();
             if (!_write_msgs.empty())
             {
-                do_write();
+                do_writeHeader();
             }
         }
         else
@@ -110,6 +130,8 @@ void client::do_write()
         }
     });
 }
+
+
 
 void client::startPeriodicTimer()
 {
@@ -130,6 +152,7 @@ void client::startPeriodicTimer()
 void client::prepareVector()
 {
     _elements.clear();
+    _elements.resize(_maxElementCount);
     std::default_random_engine re;
 
     for (std::size_t i = 0; i < _maxElementCount; ++i)

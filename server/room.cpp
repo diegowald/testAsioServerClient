@@ -8,6 +8,7 @@ void room::join(participant_ptr participant)
 {
     participants_.insert(participant);
     serverMessage sm(serverMessage::MessageType::GlobalAverage);
+    sm.setAverage(totalAverage());
     participant->deliver(sm);
 }
 
@@ -55,7 +56,7 @@ void room::add(double sumOfValues, std::size_t numElements)
 
 float room::totalAverage() const
 {
-    return _sumOfValues / _numElements;
+    return (_numElements == 0) ? 0.0 : _sumOfValues / _numElements;
 }
 
 std::size_t room::numElements() const

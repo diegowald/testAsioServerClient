@@ -28,7 +28,8 @@ public:
 private:
   void do_read_header();
   void do_read_body();
-  void do_write();
+  void do_writeHeader();
+  void do_writePayload();
   double sum(std::vector<double> &elements);
 
   asio::ip::tcp::socket socket_;
