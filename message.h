@@ -24,7 +24,6 @@ public:
   virtual const char* payload() const = 0;
   virtual char* payload() = 0;
 
-  virtual void applyToData() = 0;
   virtual bool validateHeader() = 0;
 
   virtual std::size_t payloadSizeBytes() const = 0;
@@ -37,7 +36,6 @@ public:
 
   clientMessage()
   {
-    _buffer = nullptr;
   }
 
   virtual const char *header() const override
@@ -57,32 +55,11 @@ public:
 
   virtual char *payload() override
   {
-    if (_elements.size() == _vectorSize)
+    if (_elements.empty())
     {
-      return reinterpret_cast<char*>(&_elements[0]);
+      _elements.resize(_vectorSize);
     }
-    else
-    {
-      if (_buffer != nullptr)
-      {
-        delete []_buffer;
-      }
-      _buffer = new char[payloadSizeBytes()];
-      return _buffer;
-    }
-  }
-
-  virtual void applyToData() override
-  {
-    _elements.clear();
-    _elements.resize(_vectorSize);
-    for (int i = 0; i < _vectorSize; ++i)
-    {
-      double *value = reinterpret_cast<double*>(&_buffer[i * sizeof(double)]);
-      _elements[i] = *value;
-    }
-    delete []_buffer;
-    _buffer = nullptr;
+    return reinterpret_cast<char*>(&_elements[0]);
   }
 
   virtual std::size_t headerSizeBytes() const override
@@ -121,10 +98,15 @@ public:
     return _elements;
   }
 
+  void clear()
+  {
+    _vectorSize = 0;
+    _elements.clear();
+  }
+
 private:
   std::size_t _vectorSize;
   std::vector<double> _elements;
-  char *_buffer;
 };
 
 class serverMessage : public baseMessage
@@ -195,9 +177,6 @@ public:
       return nullptr;
     }
   }
-
-  virtual void applyToData() override
-  {}
 
   virtual bool validateHeader() override
   {

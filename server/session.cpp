@@ -32,6 +32,7 @@ void session::deliver(const serverMessage &msg)
 void session::do_read_header()
 {
     auto self(shared_from_this());
+    _read_msg.clear();
     asio::async_read(socket_,
                      asio::buffer(_read_msg.header(), _read_msg.headerSizeBytes()),
                      [this, self](std::error_code ec, std::size_t /*length*/)
@@ -62,7 +63,6 @@ void session::do_read_body()
     {
         if (!ec)
         {
-            _read_msg.applyToData();
             std::vector<double> elements = _read_msg.elements();
             double total = sum(elements);
             double avg = total / elements.size();
