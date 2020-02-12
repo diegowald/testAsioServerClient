@@ -17,7 +17,7 @@ typedef std::deque<clientMessage> message_queue;
 class client
 {
 public:
-  client(asio::io_service& io_service, asio::ip::tcp::resolver::iterator endpoint_iterator);
+  client(asio::io_service& io_service, asio::ip::tcp::resolver::iterator endpoint_iterator, int secs);
 
   void write(const clientMessage& msg);
 
@@ -35,6 +35,8 @@ private:
   void prepareVector();
   void sendVector();
 
+  void waitForTimer();
+
 private:
   asio::io_service& io_service_;
   asio::ip::tcp::socket socket_;
@@ -44,6 +46,7 @@ private:
   asio::steady_timer *_timer;
   std::vector<double> _elements;
   std::uniform_real_distribution<double> _unif;
+  int _secs;
 };
 
 

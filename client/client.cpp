@@ -2,11 +2,11 @@
 
 #include <random>
 
-client::client(asio::io_service& io_service, asio::ip::tcp::resolver::iterator endpoint_iterator)
+client::client(asio::io_service& io_service, asio::ip::tcp::resolver::iterator endpoint_iterator, int secs)
     : io_service_(io_service), socket_(io_service), _read_msg(serverMessage::MessageType::UnknownMessage)
 {
     _timer = nullptr;
-
+    _secs = secs;
     do_connect(endpoint_iterator);
 }
 
@@ -137,16 +137,22 @@ void client::startPeriodicTimer()
 {
     if (_timer == nullptr)
     {
-        _timer = new asio::steady_timer(io_service_, asio::chrono::seconds(5));
-        _timer->async_wait([this](const std::error_code &ec)
-        {
-            if (!ec)
-            {
-                prepareVector();
-                sendVector();
-            }
-        });
+        _timer = new asio::steady_timer(io_service_, asio::chrono::seconds(_secs));
+        waitForTimer();
     }
+}
+
+void client::waitForTimer()
+{
+    _timer->async_wait([this](const std::error_code &ec)
+    {
+        if (!ec)
+        {
+            prepareVector();
+            sendVector();
+            waitForTimer();
+        }
+    });
 }
 
 void client::prepareVector()
@@ -154,10 +160,12 @@ void client::prepareVector()
     _elements.clear();
     _elements.resize(_maxElementCount);
     std::default_random_engine re;
+    std::cout << "vector length: " << _maxElementCount << std::endl;
 
     for (std::size_t i = 0; i < _maxElementCount; ++i)
     {
         _elements[i] = _unif(re);
+        std::cout << "v[" << i << "] = " << _elements[i] << std::endl;
     }
 }
 

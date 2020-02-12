@@ -57,22 +57,29 @@ public:
 
   virtual char *payload() override
   {
-    if (_buffer != nullptr)
+    if (_elements.size() == _vectorSize)
     {
-      delete []_buffer;
+      return reinterpret_cast<char*>(&_elements[0]);
     }
-    _buffer = new char[payloadSizeBytes()];
-    return _buffer;
+    else
+    {
+      if (_buffer != nullptr)
+      {
+        delete []_buffer;
+      }
+      _buffer = new char[payloadSizeBytes()];
+      return _buffer;
+    }
   }
 
   virtual void applyToData() override
   {
     _elements.clear();
     _elements.resize(_vectorSize);
-    for (int i = 0; i < payloadSizeBytes(); i += sizeof(double))
+    for (int i = 0; i < _vectorSize; ++i)
     {
-      double *value = reinterpret_cast<double*>(&_buffer[i]);
-      _elements.push_back(*value);
+      double *value = reinterpret_cast<double*>(&_buffer[i * sizeof(double)]);
+      _elements[i] = *value;
     }
     delete []_buffer;
     _buffer = nullptr;
@@ -85,7 +92,7 @@ public:
 
   virtual std::size_t payloadSizeBytes() const override
   {
-    return sizeof(double) * _elements.size();
+    return sizeof(double) * _vectorSize;
   }
 
   virtual bool validateHeader(std::size_t maxVectorSize)

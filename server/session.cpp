@@ -70,6 +70,9 @@ void session::do_read_body()
             sm.setAverage(avg);
             deliver(sm);
             room_.add(total, elements.size());
+
+            printReceivedVector();
+
             do_read_header();
         }
         else
@@ -119,4 +122,15 @@ void session::do_writePayload()
             room_.leave(shared_from_this());
         }
     });
+}
+
+void session::printReceivedVector()
+{
+    std::cout << "Received vector: " << std::endl;
+    std::cout << "Vector length = " << _read_msg.vectorSize();
+
+    for (std::size_t i = 0; i < _read_msg.vectorSize(); ++i)
+    {
+        std::cout << "v[" << i << "] = " << _read_msg.elements()[i] << std::endl;
+    }
 }

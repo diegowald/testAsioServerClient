@@ -31,6 +31,7 @@ private:
   void do_writeHeader();
   void do_writePayload();
   double sum(std::vector<double> &elements);
+  void printReceivedVector();
 
   asio::ip::tcp::socket socket_;
   room& room_;
