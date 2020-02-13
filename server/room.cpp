@@ -1,4 +1,5 @@
 #include "room.h"
+#include <numeric>
 
 room::room() : _sumOfValues(0.0), _numElements(0)
 {
@@ -30,11 +31,7 @@ void room::leave(participant_ptr participant)
 
 double room::deliver(const std::vector<double>& elements)
 {
-    double sum = 0.0;
-    for (float element: elements)
-    {
-        sum += element;
-    }
+    double sum = std::accumulate(elements.begin(), elements.end(), 0.0);
 
     add(sum, elements.size());
     return sum / elements.size();
@@ -42,8 +39,11 @@ double room::deliver(const std::vector<double>& elements)
 
 void room::add(double sumOfValues, std::size_t numElements)
 {
-    _sumOfValues += sumOfValues;
-    _numElements += numElements;
+    {
+        std::lock_guard<std::mutex> lock(_calculationMutex);
+        _sumOfValues += sumOfValues;
+        _numElements += numElements;
+    }
 
     for (auto participant: participants_)
     {
@@ -54,7 +54,7 @@ void room::add(double sumOfValues, std::size_t numElements)
     }
 }
 
-float room::totalAverage() const
+double room::totalAverage() const
 {
     return (_numElements == 0) ? 0.0 : _sumOfValues / _numElements;
 }

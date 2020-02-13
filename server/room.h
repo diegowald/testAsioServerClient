@@ -3,6 +3,8 @@
 
 #include <set>
 #include <vector>
+#include <mutex>
+
 #include "../typedefs.h"
 #include "../message.h"
 
@@ -16,7 +18,7 @@ public:
     double deliver(const std::vector<double>& elements);
 
     void add(double sumOfValues, std::size_t numElements);
-    float totalAverage() const;
+    double totalAverage() const;
     std::size_t numElements() const;
 
 private:
@@ -24,6 +26,7 @@ private:
 
     double _sumOfValues;
     std::size_t _numElements;
+    std::mutex _calculationMutex;
 };
 
 #endif // ROOM_H
